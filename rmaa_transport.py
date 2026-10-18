@@ -169,7 +169,11 @@ def _transfer(audio, fs, input_id=None, output_id=None, *, dtype="float32",
             state["error"] = str(exc)
             raise sd.CallbackAbort
 
-    args = dict(samplerate=fs, dtype=dtype, callback=callback,
+    # PortAudio's integer down-conversion dither can wrap full-scale PCM24
+    # peaks when MME chooses a 16-bit host format. Keep our quantized stimulus
+    # deterministic; no attenuation and no additional driver-conversion dither.
+    # Set this on every owned input/output stream, independent of sd.default.
+    args = dict(samplerate=fs, dtype=dtype, callback=callback,dither_off=True,
                 finished_callback=done.set, blocksize=blocksize, latency=latency)
     if extra_settings is not None:
         args["extra_settings"] = extra_settings

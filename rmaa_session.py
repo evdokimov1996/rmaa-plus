@@ -543,7 +543,8 @@ def duplex_test(input_id,output_id,fs=48000,level_dbfs=0,
                     output_map=list(stream_options.get("output_map",(1,2))),
                     api_mode=api_mode,pcm_format=format_label)
     sequence=np.vstack((sequence,np.zeros((round(.7*fs),2),dtype=np.float32)))
-    from rmaa_backend import playrec_with_format
+    from rmaa_backend import playrec_with_format,api_for_device
+    actual_host_api=api_for_device(input_id)
     captured=playrec_with_format(sequence,fs,input_id,output_id,
           mode=api_mode,format_label=format_label,cancel=cancel,
           progress=(lambda n:progress(.7*n)) if progress else None,**stream_options)
@@ -555,5 +556,6 @@ def duplex_test(input_id,output_id,fs=48000,level_dbfs=0,
     result=analyze_recording(captured,manifest,source="live duplex",cancel=cancel,
                             progress=(lambda n:progress(.7+.3*n)) if progress else None)
     result.update(saved,input_device=input_id,output_device=output_id,api_mode=api_mode,
+                  actual_host_api=actual_host_api,portaudio_dither=False,
                   pcm_format=format_label)
     return result

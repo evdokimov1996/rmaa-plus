@@ -114,6 +114,7 @@ def calibration_rows(results):
         values=[display_number(get(data),fmt) for _,data in results]
         if any(v!='—' for v in values):rows.append((tr(label),values))
     for label,get in [('Аудио API',lambda d:d.get('api_mode')),('Формат потока',lambda d:d.get('pcm_format')),
+                      ('Фактический host API',lambda d:d.get('actual_host_api')),
                       ('Каналы',lambda d:tr('Моно') if not d.get('right') else 'L / R')]:
         rows.append((tr(label),[str(get(data) or '—') for _,data in results]))
     return rows

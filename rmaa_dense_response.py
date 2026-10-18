@@ -16,7 +16,7 @@ class DenseResponseClockError(ValueError):
         self.residual_ppm=float(ppm)
         self.limit_ppm=float(limit)
         self.signed_ppm=float(ppm if signed_ppm is None else signed_ppm)
-        super().__init__(f"Residual clock drift {ppm:.4f} ppm exceeds dense-response limit {limit:.4f} ppm; refine clock alignment before analysis")
+        super().__init__(f"Residual clock drift {ppm:.6f} ppm exceeds dense-response limit {limit:.6f} ppm; refine clock alignment before analysis")
 
 
 def _check_cancel(cancel):

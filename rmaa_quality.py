@@ -4,6 +4,32 @@ Thresholds are a transparent display convention, not device certification.
 The overall value is the worst available metric; missing data are not graded.
 """
 import math
+from rmaa_i18n import tr
+
+
+def response_warnings(result,channels=('L','R')):
+    """Clock validity and precision are separate; never hide a noisy BLA."""
+    messages=[]
+    for side,letter in (('left','L'),('right','R')):
+        if letter not in channels:continue
+        data=result.get(side,{})
+        response=data.get('response',{})
+        if not response:continue
+        if response.get('valid') is False:
+            messages.append(letter+': '+tr('АЧХ недостоверна: проверка синхронизации не пройдена. Повторите замер.')+' '+str(response.get('reason','')))
+            continue
+        if 'noise_or_phase_realization_spread_limits_precision' in response.get('quality_flags',[]):
+            summary=response.get('quality_summary',{})
+            spread=summary.get('realization_spread_p95_db')
+            noise=summary.get('local_noise_standard_error_median_db')
+            details=[]
+            for label,value in ((tr('Разброс реализаций, 95% точек'),spread),(tr('Случайная ошибка'),noise)):
+                if isinstance(value,(int,float)) and math.isfinite(value):details.append(f'{label}: {value:.4f} dB')
+            messages.append(letter+': '+tr('Точность АЧХ ограничена шумом или искажениями.')+' '+'; '.join(details))
+        thd=data.get('tone',{}).get('thd_pct')
+        if isinstance(thd,(int,float)) and math.isfinite(thd) and thd>=1:
+            messages.append(letter+': '+tr('Высокие искажения сигнала: THD {0:.2f}%. Проверьте тракт и режим API.').format(thd))
+    return messages
 
 LABELS=("Excellent","Very good","Good","Average","Poor")
 # Four inclusive upper bounds; larger deviations receive the next category.

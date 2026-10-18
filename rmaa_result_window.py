@@ -11,6 +11,7 @@ from rmaa_plots import PLOTS,available_plots,curves,draw_plot,TECHNICAL_COLORS
 from rmaa_result_model import NAV_NAMES,ORDER,measurement_rows,overview_rows,calibration_rows,display_number
 from rmaa_plot_lifecycle import cancel_canvas_callbacks
 from rmaa_axis_controls import AxisRangeControls
+from rmaa_quality import response_warnings
 
 
 class ResultWindow(tk.Toplevel):
@@ -41,6 +42,9 @@ class ResultWindow(tk.Toplevel):
             ttk.Button(header,text=tr(label),command=command).pack(side='right',padx=3)
         self.subtitle=ttk.Label(self,padding=(12,0,12,8))
         self.subtitle.pack(fill='x')
+        self.quality_message=tk.StringVar()
+        self.quality_banner=tk.Label(self,textvariable=self.quality_message,anchor='w',justify='left',
+            background='#fff0cf',foreground='#842b00',font=('Segoe UI',10,'bold'),padx=12,pady=8,wraplength=1100)
         outer=ttk.Panedwindow(self,orient='horizontal');outer.pack(fill='both',expand=True,padx=10)
         sidebar=ttk.Frame(outer,width=245);sidebar.pack_propagate(False)
         outer.add(sidebar,weight=0)
@@ -190,6 +194,10 @@ class ResultWindow(tk.Toplevel):
     def _refresh_visibility(self):
         if self._changing:return
         key=self.selected_key;channels=self._channels();chosen=self._chosen()
+        warnings=[name+' · '+message for name,data in chosen for message in response_warnings(data,channels)]
+        self.quality_message.set('\n'.join(warnings))
+        if warnings:self.quality_banner.pack(fill='x',after=self.subtitle,padx=10,pady=(0,6))
+        else:self.quality_banner.pack_forget()
         if key in self.plot_keys:
             for i,c,line in self._lines:line.set_visible(self.records[i].get() and c in channels)
             legend=self.axes.get_legend()
@@ -273,8 +281,16 @@ class ResultWindow(tk.Toplevel):
         if self.selected_key not in self.plot_keys:return
         path=filedialog.asksaveasfilename(parent=self,defaultextension='.png',initialfile=self.selected_key+'.png',filetypes=[('PNG','*.png')])
         if path:
-            try:self.figure.savefig(path,dpi=160,facecolor=self.figure.get_facecolor())
+            warning=None
+            try:
+                if self.quality_message.get():
+                    import textwrap
+                    warning=self.figure.text(.02,-.03,'\n'.join(textwrap.wrap(self.quality_message.get(),110)),
+                        color='#ffb545',fontsize=9,va='top')
+                self.figure.savefig(path,dpi=160,facecolor=self.figure.get_facecolor(),bbox_inches='tight')
             except Exception as exc:messagebox.showerror('PNG',str(exc),parent=self)
+            finally:
+                if warning is not None:warning.remove()
 
     def save_report(self):
         chosen=self._chosen()

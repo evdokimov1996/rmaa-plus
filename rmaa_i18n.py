@@ -436,5 +436,11 @@ _EN = {
     "Установлена последняя версия.": "The latest version is installed.",
     "Доступна версия {0}. Скачать обновление с GitHub?": "Version {0} is available. Download it from GitHub?",
     "Загрузка не начата.": "Download not started.",
-    "Обновление не выполнено. Текущая версия сохранена.": "Update failed. The current version was retained."
+    "Обновление не выполнено. Текущая версия сохранена.": "Update failed. The current version was retained.",
+    "АЧХ недостоверна: проверка синхронизации не пройдена. Повторите замер.": "Invalid FR: synchronization validation failed. Repeat the measurement.",
+    "Точность АЧХ ограничена шумом или искажениями.": "FR precision is limited by noise or distortion.",
+    "Разброс реализаций, 95% точек": "Realization spread, 95% of bins",
+    "Случайная ошибка": "Random standard error",
+    "Высокие искажения сигнала: THD {0:.2f}%. Проверьте тракт и режим API.": "High signal distortion: THD {0:.2f}%. Check the signal path and host API.",
+    "Фактический host API": "Actual host API"
 }

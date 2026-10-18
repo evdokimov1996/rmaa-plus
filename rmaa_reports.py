@@ -124,6 +124,7 @@ def report_html(results):
     esc = lambda x: html.escape(str(x), quote=True)
     sections = []
     for index, (label, result) in enumerate(results, 1):
+        from rmaa_quality import response_warnings
         table = "".join(
             "<tr><th>" + esc(name) + "</th><td>" + esc(left) +
             "</td><td>" + esc(right) + "</td></tr>"
@@ -132,6 +133,7 @@ def report_html(results):
         settings = (
             tr('Fs: {0} Гц, генератор: {1} dBFS peak, устройство входа: {2}, устройство выхода: {3}.').format(esc(result.get('fs', '?')),esc(result.get('level_dbfs', '?')),esc(result.get('input_device', '?')),esc(result.get('output_device', '?')))
         )
+        settings+=''.join('<br><strong style="color:#9b3100">'+esc(message)+'</strong>' for message in response_warnings(result))
         sections.append(
             tr('<section><h2>{0}. {1}</h2><p>{2}</p><table><thead><tr><th>Параметр</th><th>Левый канал</th><th>Правый канал</th></tr></thead><tbody>{3}</tbody></table></section>').format(index,esc(label),settings,table)
         )
@@ -181,6 +183,8 @@ def report_txt(results):
     for label, result in results:
         lines.append("\n" + str(label))
         lines.append("Fs: "+str(result.get("fs","?")))
+        from rmaa_quality import response_warnings
+        lines.extend(response_warnings(result))
         for name, left, right in summary_rows(result):
             lines.append(f"{name:43s}: L {left:>11s} | R {right:>11s}")
     return "\n".join(lines) + "\n"

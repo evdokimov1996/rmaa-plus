@@ -14,12 +14,12 @@ RU=[
 
 Эта инструкция всегда доступна через «Справка → Как пользоваться» и F1. Слева выберите раздел; стрелки переключают разделы.'''),
 ('2. Устройства и каналы', '''1. В поле «Воспроизведение» выберите реальный выход звуковой карты. В поле «Запись» — физический вход или отдельный АЦП.
-2. Выберите устройства одного Audio API. Для прямой работы с поддерживаемыми устройствами обычно подходит WASAPI Exclusive. ASIO доступен, когда установлен подходящий драйвер и библиотека PortAudio его предоставляет. Выбор пункта сам по себе не устанавливает драйвер.
+2. Выберите устройства одного Audio API. «Автоматически» использует API выбранного устройства и не переводит MME в WASAPI. Для WASAPI Exclusive выберите оба устройства с меткой [Windows WASAPI]. Для прямой работы с поддерживаемыми устройствами обычно подходит WASAPI Exclusive. ASIO доступен, когда установлен подходящий драйвер и библиотека PortAudio его предоставляет. Выбор пункта сам по себе не устанавливает драйвер.
 3. Начните с 48 000 Гц и 24-bit PCM. Оба устройства должны поддерживать выбранный режим. «Пинг» открывает и закрывает его с цифровой тишиной; это не доказательство bit-perfect.
 4. Один подключённый вход: выберите «Моно (вход 1)» либо нужный физический номер в «Настройках». В моно программа не выдумывает второй канал и не оценивает взаимопроникновение.
 5. Для стерео подключите оба выхода к двум отдельным входам, выберите L/R и проверьте карту каналов.
 
-Отключите эффекты, AGC, шумоподавление и эквалайзеры в измеряемом тракте, если требуется измерить саму аппаратуру. Закройте другие программы, использующие эти устройства. Программа не меняет громкость Windows и усиление оборудования.'''),
+Отключите эффекты, AGC, шумоподавление и эквалайзеры в измеряемом тракте, если требуется измерить саму аппаратуру. Закройте другие программы, использующие эти устройства. Программа не меняет громкость Windows и усиление оборудования. Автоматический dithering PortAudio в измерительных потоках отключён: это предотвращает переполнение PCM24 на пиках в MME; генератор остаётся 0 dBFS.'''),
 ('3. Онлайн АЧХ и уровень', '''1. Нажмите «Онлайн АЧХ / уровень», затем «Запустить».
 2. Дождитесь сообщения «Сигнал найден» и стабилизации графика.
 3. Смотрите на Peak и RMS. Peak показывает максимальные отсчёты, RMS — среднеквадратичный уровень; это разные величины.
@@ -82,7 +82,7 @@ Disconnect headphones and speakers from the measured output before testing: the 
 Extract the complete RMAA+ folder. Keep RMAA+.exe, _internal and portable.flag together. Python and an installer are not required for the Windows bundle. Portable preferences are in data/preferences.json. Open this guide with Help or F1.'''),
 ('2. Devices and channels', '''Select the physical playback output and recording input using the same audio host API. WASAPI Exclusive is a useful starting point when both devices support it. ASIO requires a compatible installed driver and an ASIO-capable PortAudio library.
 
-Start with 48 kHz / 24-bit PCM. Ping actually opens and closes the selected format using silence; it does not prove bit transparency.
+Start with 48 kHz / 24-bit PCM. Select both devices marked [Windows WASAPI] and WASAPI Exclusive for a direct supported path. Automatic uses the host API of the selected device; it does not switch an MME device to WASAPI. Ping actually opens and closes the selected format using silence; it does not prove bit transparency. PortAudio conversion dither is disabled in measurement streams to prevent full-scale PCM24 wrapping in MME; the generator stays at 0 dBFS.
 
 For one connected input select Mono and the correct physical input number. Stereo requires two separate connected inputs; mono does not produce fabricated stereo balance or crosstalk.
 

@@ -142,6 +142,7 @@ def _stream_record_raw24(audio,fs,devices,extra_settings=None):
       "samplerate":fs,"channels":(channels,channels),
       "device":devices,"dtype":"int24","callback":callback,
       "finished_callback":completed.set,"blocksize":0,
+      "dither_off":True,
     }
     if extra_settings is not None:kwargs["extra_settings"]=extra_settings
     timeout=max(20.0,2.5*len(x)/fs+10)

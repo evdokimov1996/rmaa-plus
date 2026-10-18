@@ -18,7 +18,9 @@ class StreamTests(unittest.TestCase):
         source=rng.uniform(-.3,.3,(283,2)).astype(np.float32)
         received=[]
         class FakeStream:
-            def __init__(self,**kw):self.kw=kw
+            def __init__(self,**kw):
+                if kw.get('dither_off') is not True:raise AssertionError('Measurement must disable PortAudio conversion dither')
+                self.kw=kw
             def __enter__(self):
                 inch,outch=self.kw["channels"]
                 for start in range(0,len(source),64):
@@ -100,7 +102,9 @@ class StreamTests(unittest.TestCase):
     def test_independent_streams_keep_capture_margin_and_close_both(self):
         fs=8000;source=np.full((1000,2),.1,np.float32);closed=[];outputs=[]
         class Input:
-            def __init__(self,**kw):self.kw=kw
+            def __init__(self,**kw):
+                if kw.get('dither_off') is not True:raise AssertionError('Input conversion dither enabled')
+                self.kw=kw
             def __enter__(self):
                 while True:
                     try:self.kw["callback"](np.full((128,2),.01,np.float32),128,None,None)
@@ -108,7 +112,9 @@ class StreamTests(unittest.TestCase):
                 self.kw["finished_callback"]();return self
             def __exit__(self,*args):closed.append("input")
         class Output:
-            def __init__(self,**kw):self.kw=kw
+            def __init__(self,**kw):
+                if kw.get('dither_off') is not True:raise AssertionError('Output conversion dither enabled')
+                self.kw=kw
             def __enter__(self):
                 while True:
                     out=np.empty((128,2),np.float32)

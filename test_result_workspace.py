@@ -45,6 +45,32 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(w.axes.get_xlim(),(80,8000))
         self.assertEqual(w.axes.get_ylim(),(-.04,.04))
         self.assertFalse(self.errors)
+
+    def test_precision_warning_remains_visible_during_mouse_motion_and_zoom(self):
+        data=fixture();data['left']['tone']['thd_pct']=27.
+        data['left']['response'].update(valid=True,quality_flags=['noise_or_phase_realization_spread_limits_precision'],
+            quality_summary={'realization_spread_p95_db':.2956,'local_noise_standard_error_median_db':.0292})
+        w=self.window;w.set_results([('Bad capture',data)]);self.root.update()
+        text=w.quality_message.get()
+        self.assertIn('0.2956',text);self.assertIn('27.00%',text)
+        self.assertTrue(w.quality_banner.winfo_ismapped())
+        w._motion(SimpleNamespace(inaxes=w.axes,xdata=1000,ydata=0))
+        w.axis_controls.preset(2);self.root.update()
+        self.assertEqual(w.quality_message.get(),text)
+        self.assertTrue(w.quality_banner.winfo_ismapped())
+        w.set_results([('Good capture',fixture())]);self.root.update()
+        self.assertFalse(w.quality_message.get())
+        self.assertFalse(w.quality_banner.winfo_ismapped())
+
+    def test_rejected_clock_is_visible_without_a_curve_and_exported_in_reports(self):
+        from rmaa_reports import report_html,report_txt
+        data=fixture();data['left']['response']={'valid':False,'frequency_hz':[],
+            'response_db':[],'reason':'Residual clock drift 0.005105 ppm exceeds limit 0.005000 ppm'}
+        w=self.window;w.set_results([('Rejected',data)]);self.root.update()
+        self.assertTrue(w.quality_message.get());self.assertEqual(len(w.axes.lines),0)
+        self.assertIn('0.005105',w.quality_message.get())
+        self.assertIn('0.005105',report_html([('Rejected',data)]))
+        self.assertIn('0.005105',report_txt([('Rejected',data)]))
     def test_probe_reports_actual_nearest_sample_and_can_be_replaced(self):
         w=self.window
         for x in (970,1050):w._probe(SimpleNamespace(inaxes=w.axes,button=1,xdata=x))
