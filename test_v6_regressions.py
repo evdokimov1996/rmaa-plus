@@ -55,7 +55,7 @@ class WorkflowTests(unittest.TestCase):
         with self.assertRaises(ValueError):duplex_test(1,2,recording_path="capture.json")
 
     def test_mono_has_no_fabricated_right_or_channel_isolation(self):
-        with patch("rmaa_backend.playrec_with_format",side_effect=lambda wave,*a,**kw:wave*.5):
+        with patch("rmaa_backend.playrec_with_format",side_effect=lambda wave,*a,**kw:wave*.5),patch('rmaa_backend.api_for_device',return_value='Mock API'):
             result=duplex_test(1,2,input_map=(1,1),selected_tests=["thd","crosstalk"])
         self.assertEqual(result["channel_mode"],"mono")
         self.assertEqual(result["right"],{})

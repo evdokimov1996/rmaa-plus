@@ -96,7 +96,7 @@ class SessionTests(unittest.TestCase):
             dest=Path(root)/"capture.wav"
             def device(_):
                 return {"max_output_channels":2,"max_input_channels":2}
-            with patch("rmaa_session.sd.query_devices",side_effect=device):
+            with patch("rmaa_session.sd.query_devices",side_effect=device),patch('rmaa_backend.api_for_device',return_value='Mock API'):
                 with patch("rmaa_backend.playrec_with_format",
                            side_effect=lambda wave,*args,**kwargs:wave):
                     report=duplex_test(1,2,fs=48000,level_dbfs=-18,
@@ -111,6 +111,8 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(metadata["fs"],48000)
             self.assertEqual(report["saved_recording"],str(dest))
             self.assertEqual(report["left"]["tone"]["frequency_hz"],1000.0)
+            self.assertEqual(report['actual_host_api'],'Mock API')
+            self.assertIs(report['portaudio_dither'],False)
 
     def test_safe_peak(self):
         self.assertLessEqual(abs(self.wave).max(),.13)
