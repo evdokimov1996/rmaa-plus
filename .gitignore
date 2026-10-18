@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+build-release/
+release/
+dist/
+build/
+*.spec
+data/
+*.wav
+*.sav
+*.log

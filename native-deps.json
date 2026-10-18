@@ -1,0 +1,9 @@
+{
+  "portaudio_commit": "7c45fed9322bd86b5dd0da4547b15d9ac3b9b0ac",
+  "portaudio_url": "https://codeload.github.com/PortAudio/portaudio/zip/7c45fed9322bd86b5dd0da4547b15d9ac3b9b0ac",
+  "portaudio_sha256": "c036253776abfeb6dd64d0561dd7dc5a9c190ab9a65106c4614401ab22869732",
+  "asio_url": "https://github.com/evdokimov1996/rmaa-plus/releases/download/native-sources-20261018/asio-sdk-d5ebf0c2.zip",
+  "asio_sha256": "d5ebf0c20dd2c5f43771fd0c1418f4b361bf52434ee670097cfa6b3a335e2eca",
+  "asio_license_selection": "GPL-3.0; no proprietary agreement used",
+  "upstream_asio_url": "https://www.steinberg.net/asiosdk"
+}
