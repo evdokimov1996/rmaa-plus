@@ -16,7 +16,7 @@ class PortableTests(unittest.TestCase):
             first=Path(directory)/'first';first.mkdir();(first/'portable.flag').touch()
             with patch('sys.executable',str(first/'RMAA+.exe')):
                 save_preferences({'language':'en','fs':'48000'})
-                self.assertEqual(preference_path(),first/'data'/'preferences.json')
+                self.assertEqual(preference_path(),(first/'data'/'preferences.json').resolve())
             second=Path(directory)/'copied';shutil.copytree(first,second)
             with patch('sys.executable',str(second/'RMAA+.exe')):
                 self.assertEqual(load_preferences(),{'language':'en','fs':'48000'})

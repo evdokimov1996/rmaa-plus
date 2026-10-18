@@ -52,7 +52,7 @@ class UpdateTests(unittest.TestCase):
     def test_archive_paths_cannot_overwrite_user_data_or_escape(self):
         for name in ('RMAA+/../outside','RMAA+/data/preferences.json','RMAA+/_internal/a:stream','RMAA+/CON.txt','RMAA+/a\\b','outside.exe'):
             with self.subTest(name=name),tempfile.TemporaryDirectory() as d:
-                root=Path(d);z=root/'bad.zip'
+                root=Path(d).resolve();z=root/'bad.zip'
                 with zipfile.ZipFile(z,'w') as f:
                     info=zipfile.ZipInfo('entry');info.filename=name;f.writestr(info,b'evil')
                 with self.assertRaises(ValueError):u.unpack_verified(z,root/'out')
@@ -80,7 +80,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_download_integrity_and_cancel_leave_no_cache(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);b=root/'b';bundle(b);z=root/'bundle.zip';archive(z,b);payload=z.read_bytes()
+            root=Path(d).resolve();b=root/'b';bundle(b);z=root/'bundle.zip';archive(z,b);payload=z.read_bytes()
             release={'url':'https://github.com/test','size':len(payload),'sha256':u.sha256(z),'version':'6.4.1'}
             with patch.object(u.urllib.request,'urlopen',return_value=io.BytesIO(payload)):
                 work=u.prepare_update(release,root=root/'cache');u.validate_bundle(work/'bundle')
@@ -96,7 +96,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_success_preserves_all_user_data_and_removes_obsolete_owned_files(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);b=root/'new';bundle(b);target=root/'installed';old=old_app(target)
+            root=Path(d).resolve();b=root/'new';bundle(b);target=root/'installed';old=old_app(target)
             u.install_bundle(b,target,root/'rollback',lambda path,version:version=='6.4.1')
             self.assertEqual((target/'RMAA+.exe').read_bytes(),b'new executable')
             for name in ('data/preferences.json','my-measurement.json'):self.assertEqual((target/name).read_bytes(),old[name])
@@ -105,7 +105,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_failed_startup_restores_exact_original_tree(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);b=root/'new';bundle(b,extra={'new-file':b'new'});target=root/'installed';old=old_app(target)
+            root=Path(d).resolve();b=root/'new';bundle(b,extra={'new-file':b'new'});target=root/'installed';old=old_app(target)
             with self.assertRaisesRegex(RuntimeError,'self-test'):u.install_bundle(b,target,root/'rollback',lambda *args:False)
             actual={p.relative_to(target).as_posix():p.read_bytes() for p in target.rglob('*') if p.is_file()}
             self.assertEqual(actual,old)
@@ -113,7 +113,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_locked_executable_rolls_back_only_files_actually_touched(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);b=root/'new';bundle(b);target=root/'installed';old=old_app(target);replace=u.os.replace
+            root=Path(d).resolve();b=root/'new';bundle(b);target=root/'installed';old=old_app(target);replace=u.os.replace
             def locked(source,dest):
                 if Path(dest)==target/'RMAA+.exe':raise PermissionError('second instance holds EXE')
                 return replace(source,dest)
@@ -123,14 +123,14 @@ class UpdateTests(unittest.TestCase):
 
     def test_cleanup_cannot_delete_parent_or_other_directories(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);(root/'sentinel').write_text('keep')
+            root=Path(d).resolve();(root/'sentinel').write_text('keep')
             with self.assertRaises(ValueError):u._owned_remove(root,root)
             with self.assertRaises(ValueError):u._owned_remove(root/'nested/child',root)
             self.assertTrue((root/'sentinel').exists())
 
     def test_offline_recovery_restores_interrupted_program_update(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);cache=root/'cache';cache.mkdir();work=cache/'owned';work.mkdir()
+            root=Path(d).resolve();cache=root/'cache';cache.mkdir();work=cache/'owned';work.mkdir()
             target=root/'app';old=old_app(target);b=root/'new';bundle(b,extra={'new-file':b'new'})
             with self.assertRaises(RuntimeError):u.install_bundle(b,target,work/'rollback',lambda *args:False)
             (work/'plan.json').write_text(json.dumps({'schema':1,'target':str(target)}))
@@ -140,7 +140,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_corrupted_recovery_copy_is_rejected(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);cache=root/'cache';cache.mkdir();work=cache/'owned';work.mkdir()
+            root=Path(d).resolve();cache=root/'cache';cache.mkdir();work=cache/'owned';work.mkdir()
             target=root/'app';old_app(target);b=root/'new';bundle(b)
             with self.assertRaises(RuntimeError):u.install_bundle(b,target,work/'rollback',lambda *args:False)
             (work/'plan.json').write_text(json.dumps({'schema':1,'target':str(target)}))

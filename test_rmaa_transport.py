@@ -9,6 +9,10 @@ from rmaa_backend import pack_int24, _float_to_integer
 
 
 class StreamTests(unittest.TestCase):
+    def setUp(self):
+        devices=patch('rmaa_transport.sd.query_devices',return_value={'max_input_channels':8})
+        devices.start();self.addCleanup(devices.stop)
+
     def run_stream(self,dtype="float32",input_map=(1,2),output_map=(1,2),status=None,cancel=None):
         rng=np.random.default_rng(54)
         source=rng.uniform(-.3,.3,(283,2)).astype(np.float32)
