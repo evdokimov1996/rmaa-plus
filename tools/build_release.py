@@ -35,9 +35,21 @@ def build_native(work):
     import _sounddevice_data
     for enabled in (False,True):
         build=native/('build-asio' if enabled else 'build-standard')
+        if enabled:
+            # FindASIO expects an asiosdk* directory in the build tree. Extract
+            # explicitly instead of relying on CMake globbing a Windows ZIP path.
+            sdk=build/'asiosdk-pinned';sdk.mkdir(parents=True,exist_ok=True)
+            with zipfile.ZipFile(native/'asio.zip') as z:
+                for item in z.infolist():
+                    if item.is_dir() or not item.filename.startswith('ASIOSDK/'):continue
+                    target=sdk/item.filename[len('ASIOSDK/'):]
+                    target.parent.mkdir(parents=True,exist_ok=True)
+                    with z.open(item) as input_file,target.open('wb') as output:shutil.copyfileobj(input_file,output)
+            if not (sdk/'common/asio.h').is_file():raise ValueError('Pinned ASIO headers missing')
         run('cmake','-S',source,'-B',build,'-A','x64','-DPA_USE_ASIO='+('ON' if enabled else 'OFF'),
             '-DPA_DLL_LINK_WITH_STATIC_RUNTIME=ON','-DPA_BUILD_EXAMPLES=OFF','-DPA_BUILD_TESTS=OFF',
-            '-DPA_BUILD_SHARED_LIBS=ON','-DASIO_SDK_ZIP_PATH='+str((native/'asio.zip').resolve()))
+            '-DPA_BUILD_SHARED_LIBS=ON','-DASIO_SDK_ZIP_PATH='+(native/'asio.zip').resolve().as_posix())
+        if sha256(native/'asio.zip')!=pins['asio_sha256']:raise ValueError('ASIO source archive changed during configuration')
         run('cmake','--build',build,'--config','Release','--parallel','2')
         dlls=list((build/'Release').glob('portaudio*.dll'))
         if len(dlls)!=1:raise ValueError('Ambiguous native DLL output')
@@ -90,6 +102,8 @@ def main():
     if os.name!='nt':raise OSError('Use a Windows x64 build host with Visual Studio C++ / CMake')
     work=ROOT/'build-release';work.mkdir(exist_ok=True)
     native,pins,dll,snd_dll=build_native(work)
+    run(sys.executable,'-m','unittest','test_rmaa_backend','test_rmaa_session',
+        'test_rmaa_acoustic_session','test_spectrum_reports','-v')
     run(sys.executable,'-m','PyInstaller','--noconfirm','--onedir','--windowed','--name','RMAA+',
         '--distpath',work/'dist','--workpath',work/'pyinstaller','--specpath',work,ROOT/'rmaa_classic.py')
     stage=work/'dist/RMAA+'

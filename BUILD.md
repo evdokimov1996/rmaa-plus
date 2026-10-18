@@ -19,7 +19,9 @@ Windows desktop application: there is no Android package/APK for this project.
 The Windows EXE has no Authenticode signing certificate. Previous versions are retained.
 
 The builder rebuilds PortAudio with ASIO from pinned, SHA-256-verified native
-archives. Its ASIO SDK selects the GPLv3 option. Original archives and the
+archives. Its ASIO SDK selects the GPLv3 option. libsndfile 1.2.2 is also
+rebuilt from pinned source, with external codecs disabled for WAV/RF64 use.
+The native source archive includes all three libraries and original licenses. Original archives and the
 exact build instructions are distributed with each release. The ZIP includes
 per-file bundle.json hashes and third-party notices. No user data is packaged.
 
