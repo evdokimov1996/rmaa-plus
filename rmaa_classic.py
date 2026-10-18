@@ -452,8 +452,9 @@ class Lab(tk.Tk):
               "mode":self.mode_var.get(),"input":self.in_var.get().split(": ",1)[-1],
               "output":self.out_var.get().split(": ",1)[-1],"stream":self.stream_options,
               "tests":self.selected_tests(),"save_wave":bool(self.save_wave_var.get()),"language":self.language}
-        try:save_preferences(data)
-        except OSError as exc:self.status.set(tr('Не удалось сохранить настройки: ')+str(exc))
+        try:save_preferences(data);return True
+        except OSError as exc:
+            self.status.set(tr('Не удалось сохранить настройки: ')+str(exc));return False
 
     def calibrate(self):
         if self.busy:return
@@ -608,7 +609,8 @@ class Lab(tk.Tk):
                 recovery=preference_path().parent/('update-recovery-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'.json')
                 recovery.parent.mkdir(parents=True,exist_ok=True)
                 with recovery.open('x',encoding='utf8') as file:json.dump(self.report,file,ensure_ascii=False)
-            self.persist_preferences()
+            if self.persist_preferences() is False:
+                raise OSError(tr('Не удалось сохранить настройки: ')+tr('Установка отменена.'))
             launch_installer(work,Path(sys.executable).resolve().parent)
         except Exception as error:
             messagebox.showerror(tr('Обновление'),str(error),parent=self);return

@@ -52,5 +52,15 @@ class WindowsUITests(unittest.TestCase):
                 self.assertTrue(app.go_button.winfo_exists())
             finally:app.destroy()
 
+    def test_update_does_not_close_or_install_when_preferences_cannot_be_saved(self):
+        with patch('sounddevice.query_devices',return_value=[]),patch('sounddevice.query_hostapis',return_value=[]):
+            app=Lab();app.withdraw()
+            try:
+                with patch('rmaa_preferences.save_preferences',side_effect=PermissionError('read-only settings')),patch('rmaa_classic.messagebox.askyesno',return_value=True),patch('rmaa_classic.messagebox.showerror') as error,patch('rmaa_updates.launch_installer') as installer:
+                    app.install_update('not-used')
+                    installer.assert_not_called();error.assert_called_once()
+                    self.assertTrue(app.winfo_exists())
+            finally:app.destroy()
+
 if __name__=="__main__":
     unittest.main(verbosity=2)
