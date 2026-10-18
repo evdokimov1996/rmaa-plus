@@ -53,7 +53,8 @@ def build_native(work):
     snd_build=native/'build-sndfile'
     run('cmake','-S',snd_source,'-B',snd_build,'-A','x64','-DBUILD_SHARED_LIBS=ON',
         '-DENABLE_EXTERNAL_LIBS=OFF','-DENABLE_MPEG=OFF','-DBUILD_PROGRAMS=OFF',
-        '-DBUILD_EXAMPLES=OFF','-DBUILD_TESTING=OFF','-DENABLE_STATIC_RUNTIME=ON')
+        '-DBUILD_EXAMPLES=OFF','-DBUILD_TESTING=OFF','-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded',
+        '-DCMAKE_POLICY_VERSION_MINIMUM=3.5')
     run('cmake','--build',snd_build,'--config','Release','--parallel','2')
     candidates=list(snd_build.rglob('sndfile.dll'))
     if len(candidates)!=1:raise ValueError('Ambiguous libsndfile DLL output')
