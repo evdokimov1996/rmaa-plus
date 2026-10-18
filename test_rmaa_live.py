@@ -56,6 +56,21 @@ class LiveTests(unittest.TestCase):
                 with session_lease():pass
         ensure_session_available()
 
+    def test_live_pcm24_disables_conversion_dither_on_every_owned_stream(self):
+        for output_id in (1,2):
+            monitor=LiveMonitor(1,output_id,48000,'MME','24-bit PCM');opened=[]
+            class Stream:
+                active=True
+                def __init__(self,**kwargs):opened.append(kwargs)
+                def __enter__(self):monitor.stop_event.set();return self
+                def __exit__(self,*args):return False
+            with patch('rmaa_backend.extras_for_mode',return_value=None),patch('rmaa_live.sd.query_devices',return_value={'max_input_channels':2}),patch('rmaa_live.sd.check_input_settings'),patch('rmaa_live.sd.check_output_settings'),patch('rmaa_live.sd.RawStream',Stream),patch('rmaa_live.sd.RawInputStream',Stream),patch('rmaa_live.sd.RawOutputStream',Stream):
+                monitor.start();monitor.thread.join(3)
+            self.assertTrue(monitor.done.is_set());self.assertFalse(monitor.error)
+            self.assertEqual(len(opened),1 if output_id==1 else 2)
+            self.assertTrue(all(s.get('dither_off') is True for s in opened))
+            ensure_session_available()
+
     def test_level_outside_safe_range_rejected(self):
         monitor=LiveMonitor(1,2,48000,'MME','32-bit float')
         for value in (.1,float('nan'),-90):

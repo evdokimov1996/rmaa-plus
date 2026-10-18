@@ -166,7 +166,8 @@ class LiveMonitor:
             self.analyzer=LiveAnalyzer(self.fs)
             current=self._requested_level;self._wire=self._make_wire(current)
             raw=self.dtype in ('int24','uint8')
-            common={'samplerate':self.fs,'dtype':self.dtype,'blocksize':self.options.get('blocksize',0),'latency':self.options.get('latency','high')}
+            common={'samplerate':self.fs,'dtype':self.dtype,'dither_off':True,
+                    'blocksize':self.options.get('blocksize',0),'latency':self.options.get('latency','high')}
             with ExitStack() as stack:
                 if self.stop_event.is_set():return
                 streams=[]
