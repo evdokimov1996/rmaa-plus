@@ -33,3 +33,8 @@ See THIRD_PARTY.md, UPDATES.md and RELEASE_NOTES.md.
 Portable distribution: rename the bundled EXE to RMAA+.exe, keep _internal
 and place an empty portable.flag beside the EXE. Bundle the entire folder
 as RMAA+. Do not package data/preferences.json from a user installation.
+
+PortAudio is pinned to the 19.7.0 ABI supported by sounddevice 0.5.6.
+The builder compiles a native header probe and compares WASAPI and common
+PortAudio struct sizes with the actual Python binding before packaging.
+A larger incompatible WASAPI stream-info structure is rejected.

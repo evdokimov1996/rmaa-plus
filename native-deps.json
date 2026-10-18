@@ -1,12 +1,13 @@
 {
-  "portaudio_commit": "7c45fed9322bd86b5dd0da4547b15d9ac3b9b0ac",
-  "portaudio_url": "https://codeload.github.com/PortAudio/portaudio/zip/7c45fed9322bd86b5dd0da4547b15d9ac3b9b0ac",
-  "portaudio_sha256": "c036253776abfeb6dd64d0561dd7dc5a9c190ab9a65106c4614401ab22869732",
+  "portaudio_commit": "147dd722548358763a8b649b3e4b41dfffbcfbb6",
+  "portaudio_url": "https://codeload.github.com/PortAudio/portaudio/zip/147dd722548358763a8b649b3e4b41dfffbcfbb6",
+  "portaudio_sha256": "ba87724cbd6e2bb643fdcdafc50b6ba43881734fa5d106a730db75c5dd729a06",
   "asio_url": "https://github.com/evdokimov1996/rmaa-plus/releases/download/native-sources-20261018/asio-sdk-d5ebf0c2.zip",
   "asio_sha256": "d5ebf0c20dd2c5f43771fd0c1418f4b361bf52434ee670097cfa6b3a335e2eca",
   "asio_license_selection": "GPL-3.0; no proprietary agreement used",
   "upstream_asio_url": "https://www.steinberg.net/asiosdk",
   "libsndfile_url": "https://codeload.github.com/libsndfile/libsndfile/zip/refs/tags/1.2.2",
   "libsndfile_sha256": "14899cc522be3442df041ba74d6477bd91619a9be508e5097176e054d0b7ed5c",
-  "libsndfile_version": "1.2.2"
+  "libsndfile_version": "1.2.2",
+  "portaudio_version": "19.7.0"
 }

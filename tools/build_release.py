@@ -23,12 +23,28 @@ def download(url,path,digest):
     with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'RMAA-Plus-build'}),timeout=60) as r,path.open('wb') as out:shutil.copyfileobj(r,out)
     if sha256(path)!=digest:raise ValueError('Native source hash mismatch: '+path.name)
 
+def verify_binding_abi(native,source):
+    """Compile against the actual headers and compare the Python binding ABI."""
+    probe=native/'binding-abi';probe.mkdir(exist_ok=True)
+    (probe/'CMakeLists.txt').write_text('cmake_minimum_required(VERSION 3.15)\nproject(rmaa_abi C)\nadd_executable(rmaa_abi probe.c)\ntarget_include_directories(rmaa_abi PRIVATE "${RMAA_PA_INCLUDE}")\n')
+    (probe/'probe.c').write_text('#include <stdio.h>\n#include <windows.h>\n#include "pa_win_wasapi.h"\nint main(void) { printf("%u %u %u", (unsigned)sizeof(PaWasapiStreamInfo), (unsigned)sizeof(PaStreamParameters), (unsigned)sizeof(PaDeviceInfo)); return 0; }\n')
+    run('cmake','-S',probe,'-B',probe/'build','-A','x64','-DRMAA_PA_INCLUDE='+(source/'include').resolve().as_posix())
+    run('cmake','--build',probe/'build','--config','Release','--parallel','2')
+    actual=list(map(int,subprocess.check_output([str(probe/'build/Release/rmaa_abi.exe')],text=True).split()))
+    from _sounddevice import ffi
+    names=('PaWasapiStreamInfo','PaStreamParameters','PaDeviceInfo')
+    expected=[ffi.sizeof(name) for name in names]
+    if actual!=expected:raise ValueError(f'PortAudio / sounddevice ABI mismatch: native {actual}, binding {expected}')
+    print('Native and Python PortAudio struct ABI verified:',dict(zip(names,actual)),flush=True)
+    return dict(zip(names,actual))
+
 def build_native(work):
     pins=json.loads((ROOT/'native-deps.json').read_text());native=work/'native';native.mkdir(parents=True,exist_ok=True)
     for name in ('portaudio','asio','libsndfile'):download(pins[name+'_url'],native/(name+'.zip'),pins[name+'_sha256'])
     source=native/('portaudio-'+pins['portaudio_commit'])
     if not source.exists():
         with zipfile.ZipFile(native/'portaudio.zip') as z:z.extractall(native)
+    abi=verify_binding_abi(native,source)
     with zipfile.ZipFile(native/'asio.zip') as z:
         license_text=z.read('ASIOSDK/LICENSE.txt').decode('utf8',errors='replace')
         if 'General Public License' not in license_text:raise ValueError('ASIO GPL option missing')
@@ -48,7 +64,8 @@ def build_native(work):
             if not (sdk/'common/asio.h').is_file():raise ValueError('Pinned ASIO headers missing')
         run('cmake','-S',source,'-B',build,'-A','x64','-DPA_USE_ASIO='+('ON' if enabled else 'OFF'),
             '-DPA_DLL_LINK_WITH_STATIC_RUNTIME=ON','-DPA_BUILD_EXAMPLES=OFF','-DPA_BUILD_TESTS=OFF',
-            '-DPA_BUILD_SHARED_LIBS=ON','-DASIO_SDK_ZIP_PATH='+(native/'asio.zip').resolve().as_posix())
+            '-DPA_BUILD_SHARED=ON','-DPA_BUILD_STATIC=OFF','-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
+            '-DASIOSDK_ROOT_DIR='+(build/'asiosdk-pinned').resolve().as_posix())
         if sha256(native/'asio.zip')!=pins['asio_sha256']:raise ValueError('ASIO source archive changed during configuration')
         run('cmake','--build',build,'--config','Release','--parallel','2')
         dlls=list((build/'Release').glob('portaudio*.dll'))
@@ -75,7 +92,7 @@ def build_native(work):
     shutil.copy2(snd_dll,Path(_soundfile_data.__file__).parent/'libsndfile_x64.dll')
     # Test the actual rebuilt library, including the measurement's PCM24 format.
     run(sys.executable,'-c',"import soundfile as s,numpy as n,tempfile,pathlib; t=tempfile.TemporaryDirectory(); p=pathlib.Path(t.name)/'test.wav'; x=n.linspace(-1,.999,128); s.write(p,x,48000,subtype='PCM_24'); y,f=s.read(p); assert f==48000 and n.max(n.abs(x-y))<2**-22; t.cleanup()")
-    return native,pins,dll,snd_dll
+    return native,pins,dll,snd_dll,abi
 
 def license_files(stage):
     packages=('numpy','scipy','matplotlib','sounddevice','soundfile','cffi','pycparser','pillow',
@@ -101,7 +118,7 @@ def license_files(stage):
 def main():
     if os.name!='nt':raise OSError('Use a Windows x64 build host with Visual Studio C++ / CMake')
     work=ROOT/'build-release';work.mkdir(exist_ok=True)
-    native,pins,dll,snd_dll=build_native(work)
+    native,pins,dll,snd_dll,abi=build_native(work)
     run(sys.executable,'-m','unittest','test_rmaa_backend','test_rmaa_session',
         'test_rmaa_acoustic_session','test_spectrum_reports','-v')
     run(sys.executable,'-m','PyInstaller','--noconfirm','--onedir','--windowed','--name','RMAA+',
@@ -124,7 +141,7 @@ def main():
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     files={p.relative_to(stage).as_posix():sha256(p) for p in stage.rglob('*') if p.is_file()}
     manifest={'schema':1,'product':'RMAA+','version':VERSION,'platform':'Windows-x64','source_commit':commit,
-              'license':'GPL-3.0-or-later','python_version':sys.version,'packages':packages,'native_sources':pins,'asio_dll_sha256':sha256(dll),'libsndfile_dll_sha256':sha256(snd_dll),'files':files}
+              'license':'GPL-3.0-or-later','python_version':sys.version,'packages':packages,'native_sources':pins,'portaudio_binding_abi':abi,'asio_dll_sha256':sha256(dll),'libsndfile_dll_sha256':sha256(snd_dll),'files':files}
     (stage/'bundle.json').write_text(json.dumps(manifest,indent=2),encoding='utf8');validate_bundle(stage,VERSION)
     release=ROOT/'release';release.mkdir(exist_ok=True)
     prefix=f'RMAA-Plus-v{VERSION}'
