@@ -21,8 +21,15 @@ The public Windows x64 PortAudio binaries are rebuilt from the source revision
 and archives pinned by native-deps.json. PortAudio's license is MIT. The ASIO
 SDK GPLv3 option is selected; no proprietary ASIO agreement is used. The
 original SDK archive and PortAudio source archive are published as native
-sources with the release. PortAudio's pinned CMake scripts describe any SDK
-compatibility patch used during compilation.
+sources with the release. PortAudio's pinned CMake scripts are part of the published build inputs.
+
+The bundled libsndfile DLL is rebuilt from pinned 1.2.2 source without external
+FLAC/Vorbis/Opus/MPEG codecs. The application supports WAV/WAVEX/RF64; these
+formats retain their PCM and floating-point handling. The complete LGPL source
+archive is included in the native-sources release asset. Build options are in
+tools/build_release.py. Users may replace the shared DLL at
+_internal/_soundfile_data/libsndfile_x64.dll with a compatible modified build;
+retain the C API/ABI. There is no signature restriction on that replacement.
 
 ASIO is a trademark of Steinberg Media Technologies GmbH. No Steinberg logo
 is used, and no affiliation or endorsement is claimed. The open-source SDK

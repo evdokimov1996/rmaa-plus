@@ -25,7 +25,7 @@ def download(url,path,digest):
 
 def build_native(work):
     pins=json.loads((ROOT/'native-deps.json').read_text());native=work/'native';native.mkdir(parents=True,exist_ok=True)
-    for name in ('portaudio','asio'):download(pins[name+'_url'],native/(name+'.zip'),pins[name+'_sha256'])
+    for name in ('portaudio','asio','libsndfile'):download(pins[name+'_url'],native/(name+'.zip'),pins[name+'_sha256'])
     source=native/('portaudio-'+pins['portaudio_commit'])
     if not source.exists():
         with zipfile.ZipFile(native/'portaudio.zip') as z:z.extractall(native)
@@ -47,7 +47,22 @@ def build_native(work):
         destinations=list(Path(_sounddevice_data.__file__).parent.rglob(filename))
         if len(destinations)!=1:raise ValueError('Cannot locate x64 PortAudio runtime')
         shutil.copy2(dlls[0],destinations[0])
-    return native,pins,dll
+    snd_source=native/('libsndfile-'+pins['libsndfile_version'])
+    if not snd_source.exists():
+        with zipfile.ZipFile(native/'libsndfile.zip') as z:z.extractall(native)
+    snd_build=native/'build-sndfile'
+    run('cmake','-S',snd_source,'-B',snd_build,'-A','x64','-DBUILD_SHARED_LIBS=ON',
+        '-DENABLE_EXTERNAL_LIBS=OFF','-DENABLE_MPEG=OFF','-DBUILD_PROGRAMS=OFF',
+        '-DBUILD_EXAMPLES=OFF','-DBUILD_TESTING=OFF','-DENABLE_STATIC_RUNTIME=ON')
+    run('cmake','--build',snd_build,'--config','Release','--parallel','2')
+    candidates=list(snd_build.rglob('sndfile.dll'))
+    if len(candidates)!=1:raise ValueError('Ambiguous libsndfile DLL output')
+    snd_dll=candidates[0]
+    import _soundfile_data
+    shutil.copy2(snd_dll,Path(_soundfile_data.__file__).parent/'libsndfile_x64.dll')
+    # Test the actual rebuilt library, including the measurement's PCM24 format.
+    run(sys.executable,'-c',"import soundfile as s,numpy as n,tempfile,pathlib; t=tempfile.TemporaryDirectory(); p=pathlib.Path(t.name)/'test.wav'; x=n.linspace(-1,.999,128); s.write(p,x,48000,subtype='PCM_24'); y,f=s.read(p); assert f==48000 and n.max(n.abs(x-y))<2**-22; t.cleanup()")
+    return native,pins,dll,snd_dll
 
 def license_files(stage):
     packages=('numpy','scipy','matplotlib','sounddevice','soundfile','cffi','pycparser','pillow',
@@ -73,7 +88,7 @@ def license_files(stage):
 def main():
     if os.name!='nt':raise OSError('Use a Windows x64 build host with Visual Studio C++ / CMake')
     work=ROOT/'build-release';work.mkdir(exist_ok=True)
-    native,pins,dll=build_native(work)
+    native,pins,dll,snd_dll=build_native(work)
     run(sys.executable,'-m','PyInstaller','--noconfirm','--onedir','--windowed','--name','RMAA+',
         '--distpath',work/'dist','--workpath',work/'pyinstaller','--specpath',work,ROOT/'rmaa_classic.py')
     stage=work/'dist/RMAA+'
@@ -82,16 +97,19 @@ def main():
         if path.name not in ('libportaudio64bit-asio.dll','libportaudio64bit.dll'):path.unlink()
         elif path.name.endswith('-asio.dll') and sha256(path)!=sha256(dll):raise ValueError('Unexpected bundled ASIO DLL')
     if not list((stage/'_internal').rglob('libportaudio64bit-asio.dll')):raise ValueError('ASIO runtime was not bundled')
+    snd_files=list((stage/'_internal').rglob('libsndfile_x64.dll'))
+    if len(snd_files)!=1 or sha256(snd_files[0])!=sha256(snd_dll):raise ValueError('Unexpected bundled libsndfile')
     for name in ('README.md','BUILD.md','UPDATES.md','THIRD_PARTY.md','LICENSE','QUALITY.md'):
         shutil.copy2(ROOT/name,stage/name)
     (stage/'portable.flag').touch()
     packages=license_files(stage)
     (stage/'licenses/ASIO-SDK-LICENSE.txt').write_text(zipfile.ZipFile(native/'asio.zip').read('ASIOSDK/LICENSE.txt').decode('utf8'),encoding='utf8')
     shutil.copy2(next((native/('portaudio-'+pins['portaudio_commit'])).glob('LICENSE*')),stage/'licenses/PortAudio-LICENSE.txt')
+    shutil.copy2(native/('libsndfile-'+pins['libsndfile_version'])/'COPYING',stage/'licenses/libsndfile-LGPL.txt')
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     files={p.relative_to(stage).as_posix():sha256(p) for p in stage.rglob('*') if p.is_file()}
     manifest={'schema':1,'product':'RMAA+','version':VERSION,'platform':'Windows-x64','source_commit':commit,
-              'license':'GPL-3.0-or-later','python_version':sys.version,'packages':packages,'native_sources':pins,'asio_dll_sha256':sha256(dll),'files':files}
+              'license':'GPL-3.0-or-later','python_version':sys.version,'packages':packages,'native_sources':pins,'asio_dll_sha256':sha256(dll),'libsndfile_dll_sha256':sha256(snd_dll),'files':files}
     (stage/'bundle.json').write_text(json.dumps(manifest,indent=2),encoding='utf8');validate_bundle(stage,VERSION)
     release=ROOT/'release';release.mkdir(exist_ok=True)
     prefix=f'RMAA-Plus-v{VERSION}'
@@ -107,7 +125,7 @@ def main():
             if p.is_file():z.write(p,prefix+'-source/'+name)
     native_source=release/(prefix+'-native-sources.zip')
     with zipfile.ZipFile(native_source,'x',zipfile.ZIP_DEFLATED) as z:
-        for name in ('portaudio.zip','asio.zip'):z.write(native/name,name)
+        for name in ('portaudio.zip','asio.zip','libsndfile.zip'):z.write(native/name,name)
         z.write(ROOT/'native-deps.json','native-deps.json');z.write(ROOT/'LICENSE','LICENSE')
     metadata={k:v for k,v in manifest.items() if k!='files'}
     metadata.update(exe_sha256=sha256(stage/'RMAA+.exe'),archive_sha256=sha256(windows),authenticode='unsigned',
