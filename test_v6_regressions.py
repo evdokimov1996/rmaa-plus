@@ -37,7 +37,7 @@ class WorkflowTests(unittest.TestCase):
             dest=Path(folder)/"capture.wav"
             def clipped(wave,*args,**kwargs):
                 result=wave.copy();result[0,0]=1.;return result
-            with patch("rmaa_backend.playrec_with_format",side_effect=clipped):
+            with patch("rmaa_backend.playrec_with_format",side_effect=clipped),patch('rmaa_backend.api_for_device',return_value='Mock API'):
                 with self.assertRaisesRegex(ValueError,"Clipped"):
                     duplex_test(1,2,recording_path=dest,selected_tests=["noise"])
             self.assertTrue(dest.is_file())
