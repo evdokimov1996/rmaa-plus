@@ -79,7 +79,7 @@ def build_native(work):
 
 def license_files(stage):
     packages=('numpy','scipy','matplotlib','sounddevice','soundfile','cffi','pycparser','pillow',
-              'contourpy','cycler','kiwisolver','packaging','python-dateutil','six','fonttools','pyparsing','pyinstaller')
+              'contourpy','cycler','kiwisolver','packaging','python-dateutil','six','fonttools','pyparsing','typing_extensions','pyinstaller')
     versions={}
     for name in packages:
         dist=md.distribution(name);versions[name]=dist.version
